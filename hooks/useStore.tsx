@@ -296,8 +296,10 @@ const initializer: StateCreator<StoreState> = (set, _get) => ({
 });
 
 export const appStore = createStore<StoreState>(initializer);
-export const useAppStore = (<T,>(selector: (state: StoreState) => T, equalityFn?: (a: T, b: T) => boolean) =>
-  useStore(appStore, selector, equalityFn)) as typeof useStore<StoreState>;
+export const useAppStore = <T,>(
+  selector: (state: StoreState) => T,
+  equalityFn?: (a: T, b: T) => boolean
+) => (useStore as any)(appStore, selector, equalityFn);
 
 export function createTestStore() {
   return createStore<StoreState>(initializer);

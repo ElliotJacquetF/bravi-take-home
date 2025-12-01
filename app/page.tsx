@@ -9,7 +9,7 @@ import { Canvas } from "@/components/Canvas";
 import { ChatPanel } from "@/components/ChatPanel";
 import { InfoCards } from "@/components/InfoCards";
 import { prebuiltTools } from "@/lib/tools";
-import type { Assistant } from "@/lib/types";
+import type { Assistant, AssistantEdge, ToolDefinition } from "@/lib/types";
 import { ToolSelector } from "@/components/ToolSelector";
 
 type DraftToolSet = Set<string>;
@@ -48,8 +48,8 @@ export default function Home() {
   const setCurrentSquad = useAppStore((state) => state.setCurrentSquad);
   const createSquad = useAppStore((state) => state.createSquad);
   const deleteSquad = useAppStore((state) => state.deleteSquad);
-  const assistants = currentSquad?.assistants ?? [];
-  const toolLibrary = currentSquad?.toolLibrary ?? [];
+  const assistants: Assistant[] = currentSquad?.assistants ?? [];
+  const toolLibrary: ToolDefinition[] = currentSquad?.toolLibrary ?? [];
   const runtime = currentSquad?.runtime ?? {
     activeAssistantId: "",
     waitingAssistant: false,
@@ -62,7 +62,7 @@ export default function Home() {
   const attachToolToAssistant = useAppStore((state) => state.attachToolToAssistant);
   const detachToolFromAssistant = useAppStore((state) => state.detachToolFromAssistant);
   const addAssistant = useAppStore((state) => state.addAssistant);
-  const edges = currentSquad?.edges ?? [];
+  const edges: AssistantEdge[] = currentSquad?.edges ?? [];
   const removeEdge = useAppStore((state) => state.removeEdge);
   const addEdge = useAppStore((state) => state.addEdge);
   const updateEdgeTrigger = useAppStore((state) => state.updateEdgeTrigger);

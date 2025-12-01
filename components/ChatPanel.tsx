@@ -96,8 +96,10 @@ async function runAssistantLoop(params: {
   apiKey: string;
   model: string;
   assistantId: string;
-  getAssistantById: (id: string) => { prompt: string; tools: ToolDefinition[]; name?: string } | null;
-  edges: { source: string; target: string; trigger: string }[];
+  getAssistantById: (
+    id: string
+  ) => { id: string; prompt: string; tools: ToolDefinition[]; name?: string } | null;
+  edges: { id: string; source: string; target: string; trigger: string }[];
   conversation: ConversationTurn[];
   plan: string | null;
   setPlan: (plan: string | null) => void;
@@ -412,6 +414,7 @@ export function ChatPanel({
             .join("\n")}\nDo not invent tools.`
         : "";
     return {
+      id: assistant.id,
       name: assistant.name,
       basePrompt: assistant.systemPrompt,
       prompt: `${assistant.systemPrompt}${promptSuffix}`,

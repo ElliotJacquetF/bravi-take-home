@@ -3,14 +3,9 @@
 import { memo } from "react";
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 import { Pencil, Trash2 } from "lucide-react";
+import type { TransferEdgeData } from "./types";
 
-type ManhattanEdgeProps = EdgeProps & {
-  data?: {
-    onEdit?: (id: string) => void;
-    onDelete?: (id: string) => void;
-    offset?: number;
-  };
-};
+type ManhattanEdgeProps = EdgeProps;
 
 function ManhattanEdgeComponent({
   id,
@@ -22,7 +17,8 @@ function ManhattanEdgeComponent({
   markerEnd,
   data,
 }: ManhattanEdgeProps) {
-  const offset = data?.offset ?? 0;
+  const edgeData = (data ?? {}) as TransferEdgeData;
+  const offset = typeof edgeData.offset === "number" ? edgeData.offset : 0;
   const verticalOut = 28;
   const verticalIn = 28;
   const midX = (sourceX + targetX) / 2 + offset;
@@ -57,17 +53,17 @@ function ManhattanEdgeComponent({
           onClick={(e) => e.stopPropagation()}
         >
           <button
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-800 transition hover:border hover:border-slate-300 hover:bg-slate-50"
-            onClick={() => data?.onEdit?.(id)}
-            aria-label="Edit transfer trigger"
-          >
-            <Pencil className="h-3 w-3" />
-          </button>
-          <button
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-800 transition hover:border hover:border-slate-300 hover:bg-slate-50"
-            onClick={() => data?.onDelete?.(id)}
-            aria-label="Delete transfer"
-          >
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-800 transition hover:border hover:border-slate-300 hover:bg-slate-50"
+          onClick={() => edgeData.onEdit?.(id)}
+          aria-label="Edit transfer trigger"
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
+        <button
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-slate-800 transition hover:border hover:border-slate-300 hover:bg-slate-50"
+          onClick={() => edgeData.onDelete?.(id)}
+          aria-label="Delete transfer"
+        >
             <Trash2 className="h-3 w-3" />
           </button>
         </div>

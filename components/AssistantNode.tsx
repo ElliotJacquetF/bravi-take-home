@@ -2,7 +2,7 @@
 
 import type { Assistant, ToolDefinition } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps, type Node as FlowNode } from "@xyflow/react";
 import { GripVertical, Trash2, Plus, Pencil } from "lucide-react";
 
 type AssistantNodeData = {
@@ -16,7 +16,7 @@ type AssistantNodeData = {
   recentlyActiveToolId?: string | null;
 };
 
-export function AssistantNode({ data }: NodeProps<AssistantNodeData>) {
+export function AssistantNode({ data }: NodeProps<FlowNode<AssistantNodeData>>) {
   const toolCount = data.tools.length;
   return (
     <div

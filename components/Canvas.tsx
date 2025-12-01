@@ -8,6 +8,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   type Edge as FlowEdge,
+  type EdgeTypes,
   type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -19,7 +20,10 @@ import { ButtonEdge } from "./edges/ButtonEdge";
 import { ManhattanEdge } from "./edges/ManhattanEdge";
 
 const nodeTypes = { assistant: AssistantNode };
-const edgeTypes = { transfer: ButtonEdge, transferOrth: ManhattanEdge };
+const edgeTypes: EdgeTypes = {
+  transfer: ButtonEdge,
+  transferOrth: ManhattanEdge,
+};
 
 type Props = {
   onEdit: (id: string) => void;
