@@ -7,18 +7,21 @@ import { getCurrentSquad, useAppStore } from "@/hooks/useStore";
 type Props = {
   open: boolean;
   onClose: () => void;
+  targetAssistantId?: string;
 };
 
-export function CustomApiDialog({ open, onClose }: Props) {
+export function CustomApiDialog({ open, onClose, targetAssistantId }: Props) {
   const attachToolToAssistant = useAppStore((state) => state.attachToolToAssistant);
   const squad = useAppStore((state) => getCurrentSquad(state));
-  const activeAssistantId = squad?.runtime.activeAssistantId ?? squad?.assistants[0]?.id ?? "main";
+  const assistants = squad?.assistants ?? [];
+  const defaultAssistantId = squad?.runtime.activeAssistantId ?? assistants[0]?.id ?? "";
 
   const [name, setName] = useState("get_weather");
   const [url, setUrl] = useState("http://localhost:5001/weather");
   const [method, setMethod] = useState<"GET" | "POST">("GET");
   const [paramsJson, setParamsJson] = useState('{\n  "city": { "type": "string" }\n}');
   const [error, setError] = useState<string | null>(null);
+  const [selectedAssistantId, setSelectedAssistantId] = useState(targetAssistantId ?? defaultAssistantId);
 
   if (!open) return null;
 
@@ -26,8 +29,9 @@ export function CustomApiDialog({ open, onClose }: Props) {
     try {
       const parsed = JSON.parse(paramsJson) as Record<string, unknown>;
       const tool = buildCustomApiTool(`custom-${Date.now()}`, name, url, method, parsed);
-      if (activeAssistantId) {
-        attachToolToAssistant(activeAssistantId, tool);
+      const targetId = selectedAssistantId || targetAssistantId || defaultAssistantId;
+      if (targetId) {
+        attachToolToAssistant(targetId, tool);
       }
       onClose();
     } catch (err) {
@@ -82,6 +86,22 @@ export function CustomApiDialog({ open, onClose }: Props) {
               Example: {"{ \"query\": { \"type\": \"string\" } }"}
             </p>
           </div>
+          {targetAssistantId ? null : (
+            <div>
+              <p className="text-xs font-medium text-slate-700">Attach to assistant</p>
+              <select
+                className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-800 shadow-sm"
+                value={selectedAssistantId}
+                onChange={(e) => setSelectedAssistantId(e.target.value)}
+              >
+                {assistants.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {error ? <p className="text-xs text-red-600">{error}</p> : null}
         </div>
         <div className="mt-4 flex items-center justify-end gap-2">

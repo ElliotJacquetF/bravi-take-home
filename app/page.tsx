@@ -15,7 +15,7 @@ import { ToolSelector } from "@/components/ToolSelector";
 type DraftToolSet = Set<string>;
 type ToolPreset = "none" | "math" | "english";
 type View = "home" | "builder";
-type TemplateKey = "empty" | "teacher";
+type TemplateKey = "empty" | "teacher" | "teacherCoding";
 
 export default function Home() {
   const [view, setView] = useState<View>("home");
@@ -141,8 +141,18 @@ export default function Home() {
 
   const handleCreateSquad = () => {
     const name =
-      newSquadName.trim() || (newSquadTemplate === "empty" ? "Untitled Squad" : "Teacher Squad");
-    const squad = newSquadTemplate === "empty" ? emptySquadTemplate(name) : teacherTemplate(name);
+      newSquadName.trim() ||
+      (newSquadTemplate === "empty"
+        ? "Untitled Squad"
+        : newSquadTemplate === "teacherCoding"
+          ? "Teacher + Coding Squad"
+          : "Teacher Squad");
+    const squad =
+      newSquadTemplate === "empty"
+        ? emptySquadTemplate(name)
+        : newSquadTemplate === "teacherCoding"
+          ? teacherCodingTemplate(name)
+          : teacherTemplate(name);
     createSquad(squad);
     setCurrentSquad(squad.id);
     setView("builder");
@@ -271,10 +281,14 @@ export default function Home() {
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-sm font-semibold text-slate-900">Tools</h2>
-              <p className="text-xs text-slate-500">Built-in math/english, custom APIs, transfer tools per edges.</p>
+              <p className="text-xs text-slate-500">
+                Built-in math/english, code execution, planner, custom APIs, and transfer tools per edges.
+              </p>
               <div className="mt-3 space-y-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
                 <p>Math tools: {prebuiltTools.filter((t) => t.kind === "math").length}</p>
                 <p>English tools: {prebuiltTools.filter((t) => t.kind === "english").length}</p>
+                <p>Coding tools: {prebuiltTools.filter((t) => t.id === "execute_code").length}</p>
+                <p>Planner tools: {prebuiltTools.filter((t) => t.id === "planner").length}</p>
                 <p>Custom API tools: configure per assistant in the studio.</p>
               </div>
             </div>
@@ -516,6 +530,7 @@ export default function Home() {
                   <ToolSelector
                     tools={allTools}
                     attachedIds={draftTools}
+                    targetAssistantId={editingAssistantId ?? activeAssistant?.id}
                     onAttach={(tool) => setDraftTools(new Set(draftTools).add(tool.id))}
                     onDetach={(id) => {
                       const next = new Set(draftTools);
@@ -646,6 +661,7 @@ export default function Home() {
                 >
                   <option value="empty">Empty (Main only)</option>
                   <option value="teacher">Teacher (Main + Math + English)</option>
+                  <option value="teacherCoding">Teacher + Coding Assistant</option>
                 </select>
               </div>
             </div>
@@ -718,8 +734,7 @@ function baseRuntime() {
 
 const mainRouterPrompt =
   `You are the entrypoint planner/router.
-If the task is simple enough for a single specialist, transfer directly to that assistant.
-If the task is complex or multi-step, call the planner tool once to draft a brief step-by-step plan with assigned assistants, then transfer to the first step's assistant.
+If the task requires more than one step, or can be divided into distinct subtasks, you must call the planner tool once to draft a brief step-by-step plan with assigned assistants, then transfer to the first step's assistant.
 Do not perform specialist work yourself. Avoid re-planning once a plan is set. Stay concise and action-oriented.`;
 
 function emptySquadTemplate(name: string): Squad {
@@ -780,6 +795,63 @@ function teacherTemplate(name: string): Squad {
       main: { x: 300, y: 140 },
       math: { x: 20, y: 380 },
       english: { x: 580, y: 380 },
+    },
+    toolLibrary: [...prebuiltTools],
+    conversation: [],
+    runtime: baseRuntime(),
+  };
+}
+
+function teacherCodingTemplate(name: string): Squad {
+  const main: Assistant = {
+    id: "main",
+    name: "Main Assistant",
+    systemPrompt: mainRouterPrompt,
+    toolIds: ["planner"],
+    nonDeletable: true,
+  };
+  const math: Assistant = {
+    id: "math",
+    name: "Math Assistant",
+    systemPrompt:
+      "You are the math specialist.\n- Scope: arithmetic, algebra, numeric reasoning. Use your math tools when available; if a needed tool is missing, compute directly.\n- Plan & context: before acting, review prior messages and plan content to see the current step and numbers already produced (user text, tool outputs, earlier assistant replies). Reuse those numbers—do not re-ask for data already present.\n- Transfers: use transfer_to_english only when NEW text analysis is required (word/letter counts, frequency, etc). If English already provided counts or text-derived numbers, DO NOT send it back—finish the math yourself.\n- Loop control: avoid repeated transfers. Once you’ve handed off for text analysis and got numbers back, stay and finish.\n- Responses: be concise; if you used tools, summarize the numeric result clearly.",
+    toolIds: prebuiltTools.filter((t) => t.kind === "math").map((t) => t.id),
+  };
+  const english: Assistant = {
+    id: "english",
+    name: "English Assistant",
+    systemPrompt:
+      "You are the English/text specialist.\n- Scope: word/letter counts, frequency, simple text analysis. Use your English tools when available; if a needed tool is missing, compute directly.\n- Plan & context: before acting, review prior messages and plan content to see the current step and any numbers already produced (user text, tool outputs, earlier assistant replies). Reuse those numbers—do not re-ask for data already present.\n- Transfers: use transfer_to_math only when NEW math is required. If math already provided results, DO NOT send it back—finish the text-side response yourself.\n- Loop control: avoid repeated transfers. Once you’ve handed off for math and got numbers back, stay and finish.\n- Responses: be concise; if you used tools, summarize the counts/results clearly. No forced JSON unless explicitly requested.",
+    toolIds: prebuiltTools.filter((t) => t.kind === "english").map((t) => t.id),
+  };
+  const coding: Assistant = {
+    id: "coding",
+    name: "Coding Assistant",
+    systemPrompt:
+      "You are the coding specialist for JavaScript snippets.\n- Scope: generate and execute small JS snippets using the execute_code tool. Only JavaScript is allowed.\n- Always include an explicit return in your code so a value is produced. Example:\n```js\nreturn (() => {\n  const fib = (n) => { let a=0n,b=1n; for (let i=0;i<n;i++){ [a,b] = [b,a+b]; } return a; };\n  return fib(10).toString();\n})();\n```\n- Before coding, review prior messages/plan for provided numbers or text so you don’t redo work. Reuse existing results.\n- Transfers: only transfer when another specialist is truly needed; avoid bouncing. If math/text answers are already present, do not transfer—finish here.\n- Responses: be concise; report the returned value and a short note about what was executed.",
+    toolIds: ["execute_code"],
+  };
+
+  return {
+    id: `${name.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`,
+    name,
+    assistants: [main, math, english, coding],
+    edges: [
+      { id: "main-math", source: "main", target: "math", trigger: "Transfer when a step needs arithmetic, algebraic manipulation, or any numeric operations." },
+      { id: "main-english", source: "main", target: "english", trigger: "Transfer when a step needs word/letter counts, text analysis, or linguistic checks. Do not transfer if the answer is already present in previous messages." },
+      { id: "main-coding", source: "main", target: "coding", trigger: "Transfer when code generation or execution is required (JavaScript only). Ensure the snippet includes an explicit return and is concise." },
+      { id: "english-math", source: "english", target: "math", trigger: "Transfer when a math computation is required after text processing. Do not transfer if the needed numeric result is already present in previous messages." },
+      { id: "math-english", source: "math", target: "english", trigger: "Transfer when wording, counts, or text/letter analysis is required after math. Do not transfer if the needed textual/count answer is already in previous messages." },
+      { id: "math-coding", source: "math", target: "coding", trigger: "Transfer when code must be generated or executed using numeric results. Do not transfer if the code-ready value is already present." },
+      { id: "english-coding", source: "english", target: "coding", trigger: "Transfer when code execution is needed after text analysis (e.g., using counts). Do not transfer if the code-ready values are already present." },
+      { id: "coding-math", source: "coding", target: "math", trigger: "Transfer when numeric post-processing is required after code execution. Always transfer to math for calculation, even for simple additions; do not transfer only if the exact math result is already present." },
+      { id: "coding-english", source: "coding", target: "english", trigger: "Transfer when text/wording cleanup or recounts are needed after code execution. Do not transfer if those answers already exist." },
+    ],
+    nodePositions: {
+      main: { x: 380, y: 120 },
+      math: { x: 40, y: 420 },
+      english: { x: 560, y: 420 },
+      coding: { x: 380, y: 660 },
     },
     toolLibrary: [...prebuiltTools],
     conversation: [],

@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import type { EdgeProps } from "@xyflow/react";
-import { BaseEdge, EdgeLabelRenderer, getBezierPath } from "@xyflow/react";
+import { BaseEdge, EdgeLabelRenderer } from "@xyflow/react";
 import { Pencil, Trash2 } from "lucide-react";
 import type { TransferEdgeData } from "@/lib/flowTypes";
 
@@ -14,22 +14,27 @@ function ButtonEdgeComponent({
   sourceY,
   targetX,
   targetY,
-  sourcePosition,
-  targetPosition,
   style,
   markerEnd,
   markerStart,
   data,
 }: ButtonEdgeProps) {
   const edgeData = data ?? {};
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-  });
+  const vGap = 40; // vertical gap away from node before turning
+  const hOffset = Math.max(80, Math.abs(targetX - sourceX) * 0.25);
+  const midY1 = sourceY + vGap;
+  const midX = sourceX < targetX ? sourceX + hOffset : sourceX - hOffset;
+  const midY2 = targetY - vGap;
+
+  const edgePath = `M ${sourceX},${sourceY}
+    L ${sourceX},${midY1}
+    L ${midX},${midY1}
+    L ${midX},${midY2}
+    L ${targetX},${midY2}
+    L ${targetX},${targetY}`;
+
+  const labelX = (midX + targetX) / 2;
+  const labelY = midY2;
 
   const handleEdit = () => {
     console.log("edge edit click", { id, hasHandler: !!data?.onEdit, data });

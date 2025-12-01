@@ -3,7 +3,7 @@
 
 import { createStore, type StateCreator } from "zustand/vanilla";
 import { useStore } from "zustand";
-import { buildCustomApiTool, prebuiltTools } from "@/lib/tools";
+import { prebuiltTools } from "@/lib/tools";
 import type {
   Assistant,
   AssistantEdge,
@@ -58,8 +58,7 @@ export type StoreState = StoreData & StoreActions;
 
 const mainRouterPrompt =
   `You are the entrypoint planner/router.
-If the task is simple enough for a single specialist, transfer directly to that assistant.
-If the task is complex or multi-step, call the planner tool once to draft a brief step-by-step plan with assigned assistants, then transfer to the first step's assistant.
+If the task requires more than one step, or can be divided into distinct subtasks, you must call the planner tool once to draft a brief step-by-step plan with assigned assistants, then transfer to the first step's assistant.
 Do not perform specialist work yourself. Avoid re-planning once a plan is set. Stay concise and action-oriented.`;
 
 const mainAssistant: Assistant = {
@@ -70,34 +69,15 @@ const mainAssistant: Assistant = {
   nonDeletable: true,
 };
 
-const weatherTool = buildCustomApiTool(
-  "weather",
-  "get_weather",
-  "http://localhost:5001/weather",
-  "GET",
-  { city: { type: "string" } }
-);
-
-const weatherAssistant: Assistant = {
-  id: "weather",
-  name: "Weather Assistant",
-  systemPrompt:
-    "You are the weather specialist. Fetch weather by city using get_weather. If a request is not weather-related or needs another domain, transfer to the Main Assistant. Do not answer out-of-domain queries.",
-  toolIds: [weatherTool.id],
-};
-
 const initialSquad = (): Squad => ({
-  id: "default-weather",
-  name: "Main + Weather",
-  assistants: [mainAssistant, weatherAssistant],
-  edges: [
-    { id: "main-weather", source: "main", target: "weather", trigger: "Transfer weather or forecast questions to Weather Assistant." },
-  ],
+  id: "my-squad",
+  name: "My Squad",
+  assistants: [mainAssistant],
+  edges: [],
   nodePositions: {
     main: { x: 320, y: 140 },
-    weather: { x: 320, y: 380 },
   },
-  toolLibrary: [...prebuiltTools, weatherTool],
+  toolLibrary: [...prebuiltTools],
   conversation: [],
   runtime: {
     activeAssistantId: mainAssistant.id,
@@ -110,7 +90,7 @@ const initialSquad = (): Squad => ({
 
 const createInitialData = (): StoreData => ({
   squads: [initialSquad()],
-  currentSquadId: "default-weather",
+  currentSquadId: "my-squad",
   currentPlan: null,
 });
 

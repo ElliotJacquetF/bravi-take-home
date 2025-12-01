@@ -1,4 +1,5 @@
 import type { ToolDefinition, ToolExecutionResult, ToolSchema } from "./types";
+import { executeCodeInWorker } from "./executeCode";
 
 const strictParams = (properties: Record<string, unknown>, required: string[]): ToolSchema["parameters"] => ({
   type: "object",
@@ -62,6 +63,26 @@ export const englishTools: ToolDefinition[] = [
     text: { type: "string", description: "The text to analyze" },
   }),
 ];
+
+export const executeCodeTool: ToolDefinition = {
+  id: "execute_code",
+  name: "execute_code",
+  description: "Execute small, pure JavaScript snippets in a sandboxed worker and return their result. Always include an explicit return in the code.",
+  kind: "code",
+  schema: {
+    type: "function",
+    name: "execute_code",
+    description: "Run JavaScript code in a sandboxed worker. Only language: javascript. Code must explicitly return a value.",
+    strict: true,
+    parameters: strictParams(
+      {
+        language: { type: "string", description: "Language to execute (must be 'javascript')" },
+        code: { type: "string", description: "Small JavaScript snippet to execute; should return a value" },
+      },
+      ["language", "code"]
+    ),
+  },
+};
 
 export const plannerTool: ToolDefinition = {
   id: "planner",
@@ -149,7 +170,7 @@ export const buildCustomApiTool = (id: string, name: string, url: string, method
   };
 };
 
-export const prebuiltTools: ToolDefinition[] = [...mathTools, ...englishTools, plannerTool];
+export const prebuiltTools: ToolDefinition[] = [...mathTools, ...englishTools, executeCodeTool, plannerTool];
 export const transferTool: ToolDefinition = {
   id: "transfer",
   name: "transfer",
@@ -174,6 +195,8 @@ export const transferTool: ToolDefinition = {
 export async function executeLocalTool(tool: ToolDefinition, args: Record<string, unknown>): Promise<ToolExecutionResult> {
   try {
     switch (tool.kind) {
+      case "code":
+        return await handleExecuteCode(args);
       case "planner":
         return await handlePlanner(args);
       case "math":
@@ -270,4 +293,17 @@ async function handlePlanner(args: Record<string, unknown>): Promise<ToolExecuti
   // Planner is executed via LLM in ChatPanel; here we simply echo the provided plan field if present.
   if (args.plan) return { output: String(args.plan) };
   return { output: JSON.stringify({ steps: [] }) };
+}
+
+async function handleExecuteCode(args: Record<string, unknown>): Promise<ToolExecutionResult> {
+  const language = String(args.language ?? "").toLowerCase();
+  const code = typeof args.code === "string" ? args.code : "";
+  if (language !== "javascript") {
+    return { output: JSON.stringify({ ok: false, error: "Only 'javascript' is supported in this demo." }) };
+  }
+  if (!code.trim()) {
+    return { output: JSON.stringify({ ok: false, error: "No code provided." }) };
+  }
+  const result = await executeCodeInWorker(code);
+  return { output: JSON.stringify(result) };
 }

@@ -1,4 +1,4 @@
-export type ToolKind = "math" | "english" | "customApi" | "planner";
+export type ToolKind = "math" | "english" | "customApi" | "planner" | "code";
 
 export type ToolSchema = {
   type: "function";

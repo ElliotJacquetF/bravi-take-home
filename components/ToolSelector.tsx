@@ -10,6 +10,7 @@ type Props = {
   attachedIds: Set<string>;
   onAttach: (tool: ToolDefinition) => void;
   onDetach: (toolId: string) => void;
+  targetAssistantId?: string;
 };
 
 const filterByCategory = (
@@ -22,7 +23,7 @@ const filterByCategory = (
   return tools.filter((t) => t.kind === category);
 };
 
-export function ToolSelector({ tools, attachedIds, onAttach, onDetach }: Props) {
+export function ToolSelector({ tools, attachedIds, onAttach, onDetach, targetAssistantId }: Props) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | "built-in" | "math" | "english" | "api">("built-in");
   const [showCustomDialog, setShowCustomDialog] = useState(false);
@@ -108,7 +109,11 @@ export function ToolSelector({ tools, attachedIds, onAttach, onDetach }: Props) 
             onAttach={onAttach}
             onDetach={onDetach}
           />
-          <CustomApiDialog open={showCustomDialog} onClose={() => setShowCustomDialog(false)} />
+          <CustomApiDialog
+            open={showCustomDialog}
+            onClose={() => setShowCustomDialog(false)}
+            targetAssistantId={targetAssistantId}
+          />
         </>
       ) : null}
     </div>
