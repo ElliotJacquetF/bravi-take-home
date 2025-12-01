@@ -6,8 +6,7 @@ Purpose: How the AI agent works in this repo so behavior is predictable and safe
 - Implement features, UI, tests, and docs for the assistant orchestrator. No backend/auth/db work. Keep API keys local only.
 
 ### Commands & Approvals
-- Ask user before running any terminal command (except `npm test` / `npm run test:watch` when explicitly asked to test).
-- Prefer read-only commands (`ls`, `cat`, `rg`) when approved.
+- Ask user before running any terminal command (except `npm test` / `npm run test:watch` when explicitly asked to tes or read-only commands these can be performed without my authorization but try to keep them limited to not use too much context).
 - No package installs without explicit approval. No network access unless approved.
 
 ### Editing Rules
