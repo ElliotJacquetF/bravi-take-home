@@ -4,18 +4,18 @@ import { useMemo } from "react";
 import {
   Background,
   Controls,
-  Node,
   ReactFlow,
   ReactFlowProvider,
   type Edge as FlowEdge,
   type EdgeTypes,
+  type Node,
   type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import type { AssistantNodeData, TransferEdgeData } from "@/lib/flowTypes";
 import { getCurrentSquad, useAppStore } from "@/hooks/useStore";
 import { AssistantNode } from "./AssistantNode";
 import type { ToolDefinition } from "@/lib/types";
-import { Pencil, Trash2 } from "lucide-react";
 import { ButtonEdge } from "./edges/ButtonEdge";
 import { ManhattanEdge } from "./edges/ManhattanEdge";
 
@@ -65,7 +65,7 @@ function CanvasInner({ onEdit, onTransfers, onEditEdge, onDeleteEdge, recentlyAc
   const removeAssistant = useAppStore((state) => state.removeAssistant);
   const setNodePosition = useAppStore((state) => state.setNodePosition);
 
-  const nodes = useMemo<Node[]>(() => {
+  const nodes = useMemo<Node<AssistantNodeData>[]>(() => {
     return assistants.map((assistant, idx) => {
       const attachedTools: ToolDefinition[] = assistant.toolIds
         .map((id) => tools.find((t) => t.id === id))
@@ -91,7 +91,7 @@ function CanvasInner({ onEdit, onTransfers, onEditEdge, onDeleteEdge, recentlyAc
     });
   }, [assistants, tools, runtime.activeAssistantId, runtime.inFlightToolId, runtime.waitingAssistant, onEdit, onTransfers, recentlyActiveToolId, recentlyActiveAssistantId]);
 
-  const flowEdges: FlowEdge[] = useMemo(
+  const flowEdges: FlowEdge<TransferEdgeData>[] = useMemo(
     () =>
       edges.map((e) => {
         const sourceHandle = "source-bottom";
@@ -124,7 +124,7 @@ function CanvasInner({ onEdit, onTransfers, onEditEdge, onDeleteEdge, recentlyAc
             strokeWidth: 2,
             opacity: 0.9,
           },
-        } as FlowEdge;
+        };
       }),
     [edges, onDeleteEdge, onEditEdge]
   );

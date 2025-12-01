@@ -7,6 +7,25 @@ import { cn } from "@/lib/utils";
 import { runOpenAIChat } from "@/lib/llm/openai";
 import { executeLocalTool } from "@/lib/tools";
 
+const DEBUG_PROMPTS = process.env.NODE_ENV !== "production";
+
+function logAssistantCall(params: {
+  assistantId: string;
+  prompt: string;
+  tools: ToolDefinition[];
+  messages: unknown[];
+  plan: string | null;
+}) {
+  if (!DEBUG_PROMPTS) return;
+  const { assistantId, prompt, tools, messages, plan } = params;
+  console.groupCollapsed(`[LLM] ${assistantId} prompt+tools`);
+  console.log("systemPrompt", prompt);
+  console.log("tools", tools.map((t) => t.schema.name ?? t.id));
+  console.log("plan", plan);
+  console.log("messages", messages);
+  console.groupEnd();
+}
+
 function TurnBubble({ turn }: { turn: ConversationTurn }) {
   if (turn.role === "user") {
     return (
@@ -80,7 +99,7 @@ async function generatePlanWithLLM(params: {
 }) {
   const { apiKey, model, plannerArgs } = params;
   const systemPrompt =
-    "You are the planning tool. Given a user query, the assistant roster (ids, names, triggers, tool names), and optional recent context, return ONLY a JSON object {\"steps\":[{\"id\":\"1\",\"assistant\":\"assistantId\",\"question\":\"what this step answers\",\"notes\":\"optional\"},...]}. Break the problem into minimal sequential steps, assign each to the best assistant by specialty/trigger/tool, and keep questions concise. Use provided assistant ids exactly.";
+    "You are the planning tool. Given a user query, the assistant roster (ids, names, triggers, tool names), and optional recent context, return ONLY a JSON object {\"steps\":[{\"id\":\"1\",\"assistant\":\"assistantId\",\"question\":\"what this step answers\",\"notes\":\"optional\"},...]}. Break the problem into minimal sequential steps, assign each to the best assistant by specialty/trigger/tool, and keep questions concise. Use provided assistant ids exactly. After step 1, each subsequent step must stay on the same assistant or move only to an assistant reachable via a trigger from the previous assistant (i.e., the previous assistant must have a transfer_to_<assistant> tool). Do not invent assistants or tools. Prefer specialists and avoid bouncing back to Main unless necessary.";
   const res = await runOpenAIChat({
     apiKey,
     model,
@@ -186,14 +205,24 @@ async function runAssistantLoop(params: {
             context: transcript.map((t) => t.content).join(" "),
           }
         : null;
+    const messagesForCall = buildMessages(transcript, { name: assistant.name }).concat(
+      plannerPayload ? [{ role: "user", content: `Planner context: ${JSON.stringify(plannerPayload)}` }] : []
+    );
+
+    logAssistantCall({
+      assistantId: assistant.id,
+      prompt: assistant.prompt,
+      tools: assistant.tools,
+      messages: messagesForCall,
+      plan: activePlan,
+    });
+
     const response = await runOpenAIChat({
       apiKey,
       model,
       systemPrompt: assistant.prompt,
       tools: toolSchemas,
-      messages: buildMessages(transcript, { name: assistant.name }).concat(
-        plannerPayload ? [{ role: "user", content: `Planner context: ${JSON.stringify(plannerPayload)}` }] : []
-      ),
+      messages: messagesForCall,
     });
     const msg = response.choices[0].message;
 
@@ -371,7 +400,7 @@ export function ChatPanel({
 
   const [input, setInput] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("gpt-5");
+  const [model, setModel] = useState("gpt-5.1");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -503,6 +532,7 @@ export function ChatPanel({
             value={model}
             onChange={(e) => setModel(e.target.value)}
           >
+            <option value="gpt-5.1">gpt-5.1</option>
             <option value="gpt-5-nano">gpt-5-nano</option>
             <option value="gpt-5">gpt-5</option>
           </select>

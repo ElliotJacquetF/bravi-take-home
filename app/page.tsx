@@ -15,7 +15,7 @@ import { ToolSelector } from "@/components/ToolSelector";
 type DraftToolSet = Set<string>;
 type ToolPreset = "none" | "math" | "english";
 type View = "home" | "builder";
-type TemplateKey = "empty" | "mathEnglish";
+type TemplateKey = "empty" | "teacher";
 
 export default function Home() {
   const [view, setView] = useState<View>("home");
@@ -82,7 +82,7 @@ export default function Home() {
   const payload = {
     assistant: activeAssistant,
     tools: activeAssistant ? toolLibrary.filter((t) => activeAssistant.toolIds.includes(t.id)) : [],
-    model: "gpt-5-nano",
+    model: "gpt-5.1",
     provider: "openai",
   };
 
@@ -141,8 +141,8 @@ export default function Home() {
 
   const handleCreateSquad = () => {
     const name =
-      newSquadName.trim() || (newSquadTemplate === "empty" ? "Untitled Squad" : "Math + English Squad");
-    const squad = newSquadTemplate === "empty" ? emptySquadTemplate(name) : mathEnglishTemplate(name);
+      newSquadName.trim() || (newSquadTemplate === "empty" ? "Untitled Squad" : "Teacher Squad");
+    const squad = newSquadTemplate === "empty" ? emptySquadTemplate(name) : teacherTemplate(name);
     createSquad(squad);
     setCurrentSquad(squad.id);
     setView("builder");
@@ -645,7 +645,7 @@ export default function Home() {
                   onChange={(e) => setNewSquadTemplate(e.target.value as TemplateKey)}
                 >
                   <option value="empty">Empty (Main only)</option>
-                  <option value="mathEnglish">Main + Math + English</option>
+                  <option value="teacher">Teacher (Main + Math + English)</option>
                 </select>
               </div>
             </div>
@@ -744,7 +744,7 @@ function emptySquadTemplate(name: string): Squad {
   };
 }
 
-function mathEnglishTemplate(name: string): Squad {
+function teacherTemplate(name: string): Squad {
   const main: Assistant = {
     id: "main",
     name: "Main Assistant",
@@ -756,14 +756,14 @@ function mathEnglishTemplate(name: string): Squad {
     id: "math",
     name: "Math Assistant",
     systemPrompt:
-      "You are the math specialist. Use ONLY math tools when available; if a needed tool is missing, compute and answer directly. Expect a plan and prior context. If a step belongs to English or other domains, transfer using the provided transfer tools. When you produce intermediate results, keep them concise; if summarizing counts from English, expect JSON fields like {words,letters,most_frequent_letter,count}. Stay concise.",
+      "You are the math specialist.\n- Scope: arithmetic, algebra, numeric reasoning. Use your math tools when available; if a needed tool is missing, compute directly.\n- Plan & context: before acting, review prior messages and plan content to see the current step and numbers already produced (user text, tool outputs, earlier assistant replies). Reuse those numbers—do not re-ask for data already present.\n- Transfers: use transfer_to_english only when NEW text analysis is required (word/letter counts, frequency, etc). If English already provided counts or text-derived numbers, DO NOT send it back—finish the math yourself.\n- Loop control: avoid repeated transfers. Once you’ve handed off for text analysis and got numbers back, stay and finish.\n- Responses: be concise; if you used tools, summarize the numeric result clearly.",
     toolIds: prebuiltTools.filter((t) => t.kind === "math").map((t) => t.id),
   };
   const english: Assistant = {
     id: "english",
     name: "English Assistant",
     systemPrompt:
-      "You are the English/text specialist. Follow the provided plan. Use your tools for word/letter counts or text analysis; if a needed tool is missing, answer directly. Keep replies concise and focused. Structured snippets are optional—return a clear, brief answer (and include counts if relevant), not a forced JSON blob.",
+      "You are the English/text specialist.\n- Scope: word/letter counts, frequency, simple text analysis. Use your English tools when available; if a needed tool is missing, compute directly.\n- Plan & context: before acting, review prior messages and plan content to see the current step and any numbers already produced (user text, tool outputs, earlier assistant replies). Reuse those numbers—do not re-ask for data already present.\n- Transfers: use transfer_to_math only when NEW math is required. If math already provided results, DO NOT send it back—finish the text-side response yourself.\n- Loop control: avoid repeated transfers. Once you’ve handed off for math and got numbers back, stay and finish.\n- Responses: be concise; if you used tools, summarize the counts/results clearly. No forced JSON unless explicitly requested.",
     toolIds: prebuiltTools.filter((t) => t.kind === "english").map((t) => t.id),
   };
   return {
@@ -772,9 +772,9 @@ function mathEnglishTemplate(name: string): Squad {
     assistants: [main, math, english],
     edges: [
       { id: "main-math", source: "main", target: "math", trigger: "Transfer when a step needs arithmetic, algebraic manipulation, or any numeric operations." },
-      { id: "main-english", source: "main", target: "english", trigger: "Transfer when a step needs word/letter counts, text analysis, or linguistic checks." },
-      { id: "english-math", source: "english", target: "math", trigger: "Transfer when a math computation is required after text processing." },
-      { id: "math-english", source: "math", target: "english", trigger: "Transfer when wording, counts, or text/letter analysis is required after math." },
+      { id: "main-english", source: "main", target: "english", trigger: "Transfer when a step needs word/letter counts, text analysis, or linguistic checks. Do not transfer if the answer is already present in previous messages." },
+      { id: "english-math", source: "english", target: "math", trigger: "Transfer when a math computation is required after text processing. Do not transfer if the needed numeric result is already present in previous messages." },
+      { id: "math-english", source: "math", target: "english", trigger: "Transfer when wording, counts, or text/letter analysis is required after math. Do not transfer if the needed textual/count answer is already in previous messages." },
     ],
     nodePositions: {
       main: { x: 300, y: 140 },

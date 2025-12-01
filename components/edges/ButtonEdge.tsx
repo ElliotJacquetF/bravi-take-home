@@ -4,9 +4,9 @@ import { memo } from "react";
 import type { EdgeProps } from "@xyflow/react";
 import { BaseEdge, EdgeLabelRenderer, getBezierPath } from "@xyflow/react";
 import { Pencil, Trash2 } from "lucide-react";
-import type { TransferEdgeData } from "./types";
+import type { TransferEdgeData } from "@/lib/flowTypes";
 
-type ButtonEdgeProps = EdgeProps;
+type ButtonEdgeProps = EdgeProps<TransferEdgeData>;
 
 function ButtonEdgeComponent({
   id,
@@ -21,7 +21,7 @@ function ButtonEdgeComponent({
   markerStart,
   data,
 }: ButtonEdgeProps) {
-  const edgeData = (data ?? {}) as TransferEdgeData;
+  const edgeData = data ?? {};
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,

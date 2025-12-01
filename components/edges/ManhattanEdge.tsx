@@ -3,9 +3,9 @@
 import { memo } from "react";
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 import { Pencil, Trash2 } from "lucide-react";
-import type { TransferEdgeData } from "./types";
+import type { TransferEdgeData } from "@/lib/flowTypes";
 
-type ManhattanEdgeProps = EdgeProps;
+type ManhattanEdgeProps = EdgeProps<TransferEdgeData>;
 
 function ManhattanEdgeComponent({
   id,
@@ -17,7 +17,7 @@ function ManhattanEdgeComponent({
   markerEnd,
   data,
 }: ManhattanEdgeProps) {
-  const edgeData = (data ?? {}) as TransferEdgeData;
+  const edgeData = data ?? {};
   const offset = typeof edgeData.offset === "number" ? edgeData.offset : 0;
   const verticalOut = 28;
   const verticalIn = 28;

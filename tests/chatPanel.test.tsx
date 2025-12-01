@@ -10,20 +10,20 @@ vi.mock("@/lib/llm/openai", () => ({
 }));
 
 afterEach(() => {
-  appStore.getState().resetStore();
+  act(() => appStore.getState().resetStore());
 });
 
 describe("ChatPanel", () => {
-  it("adds user messages and clears input", () => {
+  it("adds user messages and clears input", async () => {
     render(<ChatPanel />);
     const input = screen.getByPlaceholderText("Type a message...");
-    act(() => {
+    await act(async () => {
       fireEvent.change(input, { target: { value: "Hello" } });
       // Provide a fake API key to bypass the required check
       fireEvent.change(screen.getByPlaceholderText("OpenAI API key (stored locally)"), {
         target: { value: "test-key" },
       });
-      fireEvent.click(screen.getByText("Send"));
+      await fireEvent.click(screen.getByText("Send"));
     });
     expect(screen.getByText("Hello")).toBeInTheDocument();
     expect((input as HTMLInputElement).value).toBe("");

@@ -5,28 +5,28 @@ import { Sidebar } from "@/components/Sidebar";
 import { ToolLibrary } from "@/components/ToolLibrary";
 
 afterEach(() => {
-  appStore.getState().resetStore();
+  act(() => appStore.getState().resetStore());
 });
 
 describe("Sidebar and ToolLibrary integration", () => {
-  it("updates prompt via Sidebar textarea", () => {
+  it("updates prompt via Sidebar textarea", async () => {
     render(<Sidebar />);
     const textarea = screen.getByRole("textbox");
-    act(() => {
-      fireEvent.change(textarea, { target: { value: "New system prompt" } });
+    await act(async () => {
+      await fireEvent.change(textarea, { target: { value: "New system prompt" } });
     });
     expect((textarea as HTMLTextAreaElement).value).toBe("New system prompt");
   });
 
-  it("attaches and detaches tools via ToolLibrary", () => {
+  it("attaches and detaches tools via ToolLibrary", async () => {
     render(<ToolLibrary />);
     const additionBtn = screen.getByText("addition");
-    act(() => {
-      fireEvent.click(additionBtn);
+    await act(async () => {
+      await fireEvent.click(additionBtn);
     });
     expect(screen.getAllByText(/Attached/).length).toBeGreaterThan(0);
-    act(() => {
-      fireEvent.click(additionBtn);
+    await act(async () => {
+      await fireEvent.click(additionBtn);
     });
     const additionButtonEl = screen.getByText("addition").closest("button");
     expect(additionButtonEl).toBeTruthy();

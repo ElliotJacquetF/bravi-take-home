@@ -299,7 +299,7 @@ export const appStore = createStore<StoreState>(initializer);
 export const useAppStore = <T,>(
   selector: (state: StoreState) => T,
   equalityFn?: (a: T, b: T) => boolean
-) => (useStore as any)(appStore, selector, equalityFn);
+) => useStore(appStore, selector, equalityFn);
 
 export function createTestStore() {
   return createStore<StoreState>(initializer);

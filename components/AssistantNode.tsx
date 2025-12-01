@@ -1,22 +1,13 @@
 "use client";
 
-import type { Assistant, ToolDefinition } from "@/lib/types";
+import type { AssistantNodeData } from "@/lib/flowTypes";
 import { cn } from "@/lib/utils";
-import { Handle, Position, type NodeProps, type Node as FlowNode } from "@xyflow/react";
+import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { GripVertical, Trash2, Plus, Pencil } from "lucide-react";
 
-type AssistantNodeData = {
-  assistant: Assistant;
-  tools: ToolDefinition[];
-  isActive: boolean;
-  inFlightToolId?: string | null;
-  onEdit?: (id: string) => void;
-  onTransfers?: (id: string) => void;
-  onDelete?: (id: string) => void;
-  recentlyActiveToolId?: string | null;
-};
+type AssistantNodeProps = NodeProps<Node<AssistantNodeData>>;
 
-export function AssistantNode({ data }: NodeProps<FlowNode<AssistantNodeData>>) {
+export function AssistantNode({ data }: AssistantNodeProps) {
   const toolCount = data.tools.length;
   return (
     <div
